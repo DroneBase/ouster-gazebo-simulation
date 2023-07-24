@@ -284,12 +284,18 @@ void GazeboRosOusterLaser::OnScan(ConstLaserScanStampedPtr& _msg) {
   const double MIN_RANGE = std::max(min_range_, minRange);
   const double MAX_RANGE = std::min(max_range_, maxRange);
 
+  bool include_time = false;
+
   // Populate message fields
-  const uint32_t POINT_STEP = 32;
+  uint32_t POINT_STEP = 32;
+  if (include_time) {
+    POINT_STEP = 32;
+  }
+
   sensor_msgs::PointCloud2 msg;
   msg.header.frame_id = frame_name_;
   msg.header.stamp = ros::Time(_msg->time().sec(), _msg->time().nsec());
-  msg.fields.resize(5);
+  msg.fields.resize(6);
   msg.fields[0].name = "x";
   msg.fields[0].offset = 0;
   msg.fields[0].datatype = sensor_msgs::PointField::FLOAT32;
@@ -310,6 +316,13 @@ void GazeboRosOusterLaser::OnScan(ConstLaserScanStampedPtr& _msg) {
   msg.fields[4].offset = 20;
   msg.fields[4].datatype = sensor_msgs::PointField::UINT16;
   msg.fields[4].count = 1;
+
+  if (include_time) {
+    msg.fields[5].name = "time";
+    msg.fields[5].offset = 24;
+    msg.fields[5].datatype = sensor_msgs::PointField::FLOAT32;
+    msg.fields[5].count = 1;
+  }
   msg.data.resize(verticalRangeCount * rangeCount * POINT_STEP);
 
   int i, j;
@@ -389,6 +402,9 @@ void GazeboRosOusterLaser::OnScan(ConstLaserScanStampedPtr& _msg) {
         *((uint16_t*)(ptr + 20)) =
             (uint16_t)(verticalRangeCount - 1 - j);  // ring
 #endif
+        if (include_time) {
+          *((float*)(ptr + 24)) = 0.; // time
+        }
         ptr += POINT_STEP;
       }
     }
